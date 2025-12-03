@@ -1,5 +1,6 @@
 # Compiled class files
 *history/
+.history/
 *.class
 
 # Log files
