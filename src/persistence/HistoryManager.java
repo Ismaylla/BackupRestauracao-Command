@@ -1,41 +1,51 @@
 package persistence;
 
 import commands.Command;
-import com.google.gson.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HistoryManager {
-    private static final String FILE_PATH = "command_history.json";
-    private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final String FILE_PATH = "command_history.txt";
 
-    // Salva lista de comandos como JSON simples
+    // Salva histórico em arquivo de texto simples
     public static void saveHistory(List<CommandRecord> records) {
-        try (Writer writer = new FileWriter(FILE_PATH)) {
-            gson.toJson(records, writer);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_PATH))) {
+            for (CommandRecord record : records) {
+                writer.write(record.commandName + ";" + record.receiverName);
+                if (record.params != null && record.params.length > 0) {
+                    for (Object param : record.params) {
+                        writer.write(";" + param.toString());
+                    }
+                }
+                writer.newLine();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Carrega lista de comandos do JSON
+    // Carrega histórico do arquivo
     public static List<CommandRecord> loadHistory() {
-        try (Reader reader = new FileReader(FILE_PATH)) {
-            CommandRecord[] records = gson.fromJson(reader, CommandRecord[].class);
-            List<CommandRecord> list = new ArrayList<>();
-            if (records != null) {
-                for (CommandRecord record : records) {
-                    list.add(record);
+        List<CommandRecord> list = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(";");
+                String commandName = parts[0];
+                String receiverName = parts[1];
+                Object[] params = new Object[parts.length - 2];
+                for (int i = 2; i < parts.length; i++) {
+                    params[i - 2] = Integer.parseInt(parts[i]); // assume parâmetros inteiros
                 }
+                list.add(new CommandRecord(commandName, receiverName, params));
             }
-            return list;
         } catch (FileNotFoundException e) {
-            return new ArrayList<>();
+            // Arquivo ainda não existe, retorna lista vazia
         } catch (IOException e) {
             e.printStackTrace();
-            return new ArrayList<>();
         }
+        return list;
     }
 
     // Classe auxiliar para armazenar informações de cada comando
